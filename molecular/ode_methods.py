@@ -11,16 +11,18 @@ class Euler:
 
 
 class Cromer:
-    def __init__(self):
-        pass
+    def __init__(self, L):
+        self.L = L
 
     def step(self, ode, t, dt, u_0):
         u_x = u_0 + ode.rhs(t, u_0) * dt
         u_new = np.zeros_like(u_0)
+
         u_new[1::2] = u_x[1::2]
-        u_new[::2] = u_0[::2]
+        u_new[::2] = u_0[::2] % self.L
 
         u_1 = u_0 + ode.rhs(t, u_new) * dt
+        u_1[1::2] = u_new[1::2]
 
         return u_1
 
