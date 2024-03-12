@@ -87,13 +87,7 @@ class LennardJones:
     """This is an example class for an ODE specification"""
 
     def __init__(
-        self,
-        eps=1.0,
-        sig=1.0,
-        n_bodies=2,
-        periodic_bounds=False,
-        L=10.0,
-        c = 2.0
+        self, eps=1.0, sig=1.0, n_bodies=2, periodic_bounds=False, L=10.0, c=2.0
     ):
         self.eps = eps
         self.sig = sig
@@ -125,6 +119,7 @@ class LennardJones:
     def rhs(self, t, u):
         u = u.reshape((self.n_bodies, 4))
         u_1 = np.zeros_like(u)
+        P = 0
 
         for i in range(self.n_bodies):
             for j in range(self.n_bodies):
@@ -137,7 +132,11 @@ class LennardJones:
                     # r_hat = r_mag/r_mag
                     F = (
                         (24 * self.eps / r_mag)
-                        * (2 * np.power((self.sig / r_mag), 12) - np.power((self.sig / r_mag), 6))* r
+                        * (
+                            2 * np.power((self.sig / r_mag), 12)
+                            - np.power((self.sig / r_mag), 6)
+                        )
+                        / r
                     )
                     # F = np.nan_to_num(F)
                     u_1[i, ::2] += u[i, 1::2]
@@ -146,3 +145,60 @@ class LennardJones:
                     P += 4 * self.eps * ((self.sig / r) ** 12 - (self.sig / r) ** 6)
 
         return u_1.flatten()
+
+
+# class LennardJones:
+#     def __init__(
+#         self, eps=1.0, sig=1.0, n_bodies=2, periodic_bounds=False, L=10.0, c=2.0
+#     ):
+#         self.eps = eps
+#         self.sig = sig
+#         self.n_bodies = n_bodies
+#         self.periodic_bounds = periodic_bounds
+#         self.L = L
+#         self.c = c
+
+#     def periodic_distance(self, p1, p2):
+#         dx = p1[0] - p2[0]
+#         dy = p1[1] - p2[1]
+
+#         if self.periodic_bounds:
+#             if dx > (0.5 * self.L):
+#                 dx -= self.L
+#             elif dx < (-0.5 * self.L):
+#                 dx += self.L
+
+#             if dy > (0.5 * self.L):
+#                 dy -= self.L
+#             elif dy < (-0.5 * self.L):
+#                 dy += self.L
+
+#         return np.array([dx, dy])
+
+#     def lj_potential(self, r):
+#         return 4 * self.eps * ((self.sig / r) ** 12 - (self.sig / r) ** 6)
+
+#     def lj_force(self, r):
+#         return (
+#             24 * self.eps * (((2 * (self.sig / r) ** 13)) - ((self.sig / r) ** 7)) / r
+#         )
+
+#     def rhs(self, t, u):
+#         u = u.reshape((self.n_bodies, 4))
+#         u_1 = np.zeros_like(u)
+#         total_potential_energy = 0
+
+#         for i in range(self.n_bodies):
+#             for j in range(self.n_bodies):
+#                 if i != j:
+#                     if self.periodic_bounds:
+#                         r = self.periodic_distance(u[i, ::2], u[j, ::2])
+#                     else:
+#                         r = u[i, ::2] - u[j, ::2]
+#                     r_mag = np.linalg.norm(r)
+#                     lj_force = self.lj_force(r_mag)
+#                     u_1[i, ::2] += u[i, 1::2]  # Update velocities
+#                     u_1[i, 1::2] += -lj_force  # Update accelerations
+#                     total_potential_energy += self.lj_potential(r_mag)
+
+#         return u_1.flatten(), total_potential_energy
