@@ -15,13 +15,18 @@ class Cromer:
         self.L = L
 
     def step(self, ode, t, dt, u_0):
-        u_x = u_0 + ode.rhs(t, u_0) * dt
+        inc = ode.rhs(t, u_0)
+        u_x = u_0 + inc * dt
         u_new = np.zeros_like(u_0)
 
         u_new[1::2] = u_x[1::2]
-        u_new[::2] = u_0[::2] % self.L
+        u_new[::2] = u_0[::2]
 
-        u_1 = u_0 + ode.rhs(t, u_new) * dt
+        inc = ode.rhs(t, u_new)
+        if self.L is None:
+            u_1 = (u_0 + inc * dt)
+        else:
+            u_1 = (u_0 + inc * dt) % self.L
         u_1[1::2] = u_new[1::2]
 
         return u_1
@@ -51,36 +56,6 @@ class Integrator:
 
         return np.array(times), np.array(states)
 
-
-class CromerPeriodic:
-    def __init__(self, callbacks=[]):
-        self.callbacks = callbacks
-
-    def step(self, ode, t, dt, u_0):
-        u_star = u_0 + dt * ode.rhs(t, u_0)
-        for c in self.callbacks:
-            u_star = c.apply(u_star)
-        u_1 = u_0 + dt * ode.rhs(t, u_star)
-        for c in self.callbacks:
-            u_1 = c.apply(u_1)
-        u_final = np.zeros_like(u_0)
-        u_final[: ode.n_bodies * 2] = u_1[: ode.n_bodies * 2]
-        u_final[ode.n_bodies * 2 :] = u_star[ode.n_bodies * 2 :]
-        return u_final
-
-
-class PBCCallback:
-    def __init__(self, position_indices, L):
-        """Accepts a list of which degrees of freedom in u are positions
-        (which varies depending on how you organized them) as well as a
-        maximum domain size."""
-        self.position_indices = position_indices
-        self.L = L
-
-    def apply(self, u):
-        # Set the positions to position modulo L
-        u[self.position_indices] = u[self.position_indices] % self.L
-        return u
 
 
 class LennardJones:
@@ -120,18 +95,10 @@ class LennardJones:
     def rhs(self, t, u):
         u = u.reshape((self.n_bodies, 4))
         u_1 = np.zeros_like(u)
-        P = 0
-        K = 0
         u_1[0, ::2] += u[0, 1::2]
-
-        if self.drag:
-            u_1[0, ::2] = -self.c*u[0, ::2]
     
         for i in range(0, self.n_bodies - 1):
             u_1[i + 1, ::2] += u[i + 1, 1::2]
-            K += 0.5*(np.linalg.norm(u[i + 1][1::2])**2)
-            if self.drag:
-                u_1[i + 1, ::2] = -self.c*u[i + 1, ::2]
             for j in range(i + 1, self.n_bodies):
                 # find vector r and its mag
                 # assume ordinary distance but use periodic distance if that's closer
@@ -154,4 +121,4 @@ class LennardJones:
                     / (mag**2)
                 )
 
-        return u_1.flatten()
+        return u_1.reshape(4*self.n_bodies)

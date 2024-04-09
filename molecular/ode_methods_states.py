@@ -104,7 +104,6 @@ class LennardJones:
             pass
 
         return np.array([dx, dy])
-    
 
     def rhs(self, t, u):
         u = u.reshape((self.n_bodies, 4))
@@ -123,8 +122,6 @@ class LennardJones:
             u_1[i + 1, ::2] += u[i + 1, 1::2]
             K += 0.5 * (np.linalg.norm(u[i + 1][1::2]) ** 2)
             for j in range(i + 1, self.n_bodies):
-                # find vector r and its mag
-                # assume ordinary distance but use periodic distance if that's closer
                 r_ij = self.periodic_distance(u[i, ::2], u[j, ::2])
                 r_ji = -1 * r_ij
                 mag = np.linalg.norm(r_ij)
