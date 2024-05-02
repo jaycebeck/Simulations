@@ -90,4 +90,14 @@ class RungeKutta4:
         return u_1
 
 
+class BackwardEuler:
+    def __init__(self):
+        pass
+    
+    def step(self, ode, t, dt, u_0):
+        L = np.eye(len(u_0)) / dt - ode.stiffness_matrix()
+        f = u_0 / dt + ode.load_vector()
+        u_next = np.linalg.solve(L, f)
+        return u_next
+
 
